@@ -3,7 +3,7 @@ name: Mon Agent Telegram Matinal
 on:
   schedule:
     # 07:00 UTC correspond à 08:00 en Suisse (heure d'hiver)
-    - cron: '45 6 * * *'
+    - cron: '45 7 * * *'
   workflow_dispatch: # Bouton magique pour tester manuellement quand tu veux !
 
 jobs:
