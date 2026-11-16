@@ -18,13 +18,13 @@ const CONSIGNE_SYSTEME =
 let modeleChoisi = null;
 
 function entetes() {
-    return { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" };
+    return { Authorization: `Bearer ${(process.env.GROQ_API_KEY || "").trim()}`, "Content-Type": "application/json" };
 }
 
 async function choisirModele() {
     if (modeleChoisi) return modeleChoisi;
     const res = await fetch(`${GROQ_API}/models`, { headers: entetes(), signal: AbortSignal.timeout(30000) });
-    if (res.status === 401) throw new Error("clé GROQ_API_KEY invalide ou absente (HTTP 401)");
+    if (res.status === 401) throw new Error("Groq refuse la clé GROQ_API_KEY (HTTP 401) : elle est invalide, expirée ou supprimée. Crée une nouvelle clé sur https://console.groq.com/keys et remplace le secret GitHub.");
     if (!res.ok) throw new Error(`liste des modèles Groq indisponible (HTTP ${res.status})`);
     const disponibles = new Set(((await res.json()).data || []).map((m) => m.id));
     modeleChoisi = MODELES_PREFERES.find((m) => disponibles.has(m));
