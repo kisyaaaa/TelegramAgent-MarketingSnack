@@ -1,94 +1,107 @@
-const fetch = require('node-fetch');
+// BabyJournalist : revue de presse marketing quotidienne envoyée sur Telegram.
+//
+// Utilisation :
+//   node index.js          → génère et envoie la revue de presse
+//   node index.js --test   → génère la revue de presse et l'affiche sans l'envoyer
 
-// --- LES CLÉS SONT MAINTENANT CACHÉES ET SÉCURISÉES ---
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; 
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;    
-const GROQ_API_KEY = process.env.GROQ_API_KEY; 
+const { SOURCES, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX } = require("./src/sources");
+const { recupererArticles } = require("./src/flux");
+const { selectionnerSujets, resumerSujet } = require("./src/ia");
+const { formaterEntete, formaterSujet, decouper, envoyer } = require("./src/telegram");
+const { doitEnvoyer } = require("./src/horaire");
 
-async function lancerAgent() {
-    console.log("🚀 L'agent Cloud se réveille...");
+const MODE_TEST = process.argv.includes("--test");
 
-    try {
-        const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const dateDuJour = new Date().toLocaleDateString('fr-FR', optionsDate);
-        const dateCourte = new Date().toLocaleDateString('fr-FR'); 
-
-        let messageFinal = `📅 <b>ACTUALITÉS DU ${dateDuJour.toUpperCase()}</b>\n\n`;
-
-        const categories = [
-            { theme: "Politique", motCle: "politique", emoji: "🏛️" },
-            { theme: "Économie", motCle: "économie", emoji: "💰" },
-            { theme: "Culture", motCle: "culture", emoji: "🎭" },
-            { theme: "Suisse", motCle: "suisse", emoji: "🇨🇭" },
-            { theme: "Ukraine", motCle: "ukraine", emoji: "🇺🇦" }
-        ];
-
-        for (let cat of categories) {
-            console.log(`🔎 Traitement de : ${cat.theme}...`);
-            
-            const urlRecherche = `https://news.google.com/rss/search?q=site:rts.ch+${encodeURIComponent(cat.motCle)}+when:1d&hl=fr-CH&gl=CH&ceid=CH:fr`;
-            const res = await fetch(urlRecherche);
-            const textXml = await res.text();
-            const items = textXml.split('<item>');
-            
-            if (items.length > 1) {
-                const item = items[1]; 
-                const title = (item.match(/<title>(.*?)<\/title>/)?.[1] || '').replace('<![CDATA[', '').replace(']]>', '').replace(/ - RTS.*/, ''); 
-                const description = (item.match(/<description>(.*?)<\/description>/)?.[1] || '').replace(/<[^>]+>/g, '').replace('<![CDATA[', '').replace(']]>', ''); 
-                const link = (item.match(/<link>(.*?)<\/link>/)?.[1] || '').replace('<![CDATA[', '').replace(']]>', '');
-
-                const consigneIA = `Aujourd'hui, nous sommes le ${dateCourte}. Fais un résumé TRÈS CONCIS (2 phrases maximum) de cette actualité en étant précis sur les noms. Ne mets aucun titre, aucun lien, aucune étoile. Juste le texte.\n\nTitre: ${title}\nDétail: ${description}`;
-
-                const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${GROQ_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [{ role: "user", content: consigneIA }],
-                        temperature: 0.2
-                    })
-                });
-                
-                const groqData = await groqResponse.json();
-                
-                let resume = "Résumé indisponible.";
-                if (groqData.choices && groqData.choices[0]) {
-                    resume = groqData.choices[0].message.content.replace(/\*/g, '');
-                }
-
-                messageFinal += `<b>${cat.emoji} ${cat.theme.toUpperCase()}</b>\n`;
-                messageFinal += `${resume}\n`;
-                messageFinal += `👉 <a href="${link}">Lire l'article</a>\n\n`;
-
-            } else {
-                messageFinal += `<b>${cat.emoji} ${cat.theme.toUpperCase()}</b>\n`;
-                messageFinal += `Aucune actualité majeure aujourd'hui.\n\n`;
-            }
-        }
-        
-        console.log("✅ Résumés générés. Envoi à Telegram...");
-
-        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        await fetch(telegramUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text: messageFinal,
-                parse_mode: "HTML",
-                disable_web_page_preview: true
-            })
-        });
-
-        console.log("🚀 MISSION ACCOMPLIE ! L'agent se rendort.");
-
-    } catch (error) {
-        console.error("❌ Erreur :", error);
+function verifierConfiguration() {
+    const requises = MODE_TEST ? [] : ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "GROQ_API_KEY"];
+    const manquantes = requises.filter((nom) => !process.env[nom]);
+    if (manquantes.length > 0) {
+        throw new Error(`Variables d'environnement manquantes : ${manquantes.join(", ")}`);
     }
 }
 
-// On lance la fonction une seule fois !
-lancerAgent();
+// Sélection de secours si l'IA est indisponible : les articles les plus récents, un par média.
+function selectionSimple(articles) {
+    const medias = new Set();
+    return articles
+        .filter((a) => !medias.has(a.source) && medias.add(a.source))
+        .slice(0, NB_ACTUS_MAX)
+        .map((a) => ({ articles: [a], theme: "Marketing", majeur: false }));
+}
+
+async function choisirSujets(articles) {
+    if (!process.env.GROQ_API_KEY) {
+        console.warn("⚠️ GROQ_API_KEY absente : sélection simple sans IA (mode test).");
+        return selectionSimple(articles);
+    }
+    try {
+        const sujets = await selectionnerSujets(articles, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX);
+        if (sujets.length > 0) return sujets;
+        console.warn("⚠️ L'IA n'a retenu aucun sujet : sélection simple.");
+    } catch (err) {
+        console.warn(`⚠️ Sélection IA impossible (${err.message}) : sélection simple.`);
+    }
+    return selectionSimple(articles);
+}
+
+async function rediger(sujet) {
+    if (process.env.GROQ_API_KEY) {
+        try {
+            return await resumerSujet(sujet);
+        } catch (err) {
+            console.warn(`⚠️ Résumé impossible (${err.message}).`);
+        }
+    }
+    const a = sujet.articles[0];
+    return a.description ? a.description.slice(0, 280) : a.titre;
+}
+
+function trierSujets(sujets) {
+    const ordre = THEMES.map((t) => t.nom);
+    return [...sujets].sort((a, b) => b.majeur - a.majeur || ordre.indexOf(a.theme) - ordre.indexOf(b.theme));
+}
+
+async function lancerAgent() {
+    if (!doitEnvoyer(process.env.PLANIFICATION)) {
+        console.log("⏰ Ce n'est pas 8 h en Suisse pour cette planification : rien à faire.");
+        return;
+    }
+    verifierConfiguration();
+    console.log("🚀 L'agent se réveille...");
+
+    console.log("🔎 Lecture des médias...");
+    const articles = await recupererArticles(SOURCES);
+    console.log(`📚 ${articles.length} article(s) récent(s) trouvé(s).`);
+
+    const blocs = [formaterEntete(new Date())];
+
+    if (articles.length === 0) {
+        blocs.push("Aucune actualité publiée par les médias suivis depuis hier.");
+    } else {
+        console.log("🧠 Sélection des sujets...");
+        const sujets = trierSujets(await choisirSujets(articles));
+
+        console.log(`✍️ Rédaction de ${sujets.length} résumé(s)...`);
+        for (const sujet of sujets) {
+            sujet.resume = await rediger(sujet);
+            blocs.push(formaterSujet(sujet, THEMES));
+        }
+    }
+
+    const messages = decouper(blocs);
+
+    if (MODE_TEST) {
+        console.log("\n🧪 MODE TEST : message non envoyé.\n");
+        messages.forEach((m, i) => console.log(`----- Message ${i + 1}/${messages.length} (${m.length} caractères) -----\n${m}\n`));
+        return;
+    }
+
+    console.log(`📨 Envoi de ${messages.length} message(s) sur Telegram...`);
+    await envoyer(messages);
+    console.log("✅ Revue de presse envoyée ! L'agent se rendort.");
+}
+
+lancerAgent().catch((err) => {
+    console.error("❌ Erreur :", err.message);
+    process.exitCode = 1; // fait échouer la GitHub Action pour être averti par e-mail
+});

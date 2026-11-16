@@ -1,6 +1,15 @@
 {
-  "dependencies": {
-    "node-cron": "^4.2.1",
-    "node-fetch": "^2.7.0"
+  "name": "telegram-agent-baby-journalist",
+  "version": "2.0.0",
+  "description": "Revue de presse marketing quotidienne (RP, Data, IA, SEO) résumée par IA et envoyée sur Telegram.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "test:local": "node --env-file=.env index.js --test",
+    "envoi:local": "node --env-file=.env index.js"
+  },
+  "engines": {
+    "node": ">=20.6"
   }
 }
