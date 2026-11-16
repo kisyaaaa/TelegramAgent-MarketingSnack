@@ -16,7 +16,7 @@ function formaterEntete(date) {
         year: "numeric",
         timeZone: "Europe/Zurich",
     });
-    return `📰 <b>REVUE DE PRESSE MARKETING</b>\n📅 ${echapper(jour.charAt(0).toUpperCase() + jour.slice(1))}`;
+    return `🍪 <b>TON MARKETING SNACK DU JOUR</b>\n📅 ${echapper(jour.charAt(0).toUpperCase() + jour.slice(1))}`;
 }
 
 // Une actualité : emoji du thème + titre en gras, résumé, médias et lien vers l'article.

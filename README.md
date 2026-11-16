@@ -1,8 +1,8 @@
-# 📰 BabyJournalist
+# 🍪 MarketingSnack
 
-**Ta revue de presse marketing, résumée en français et livrée chaque matin sur Telegram.**
+**Ta dose quotidienne d'actualité marketing, résumée en français et livrée chaque matin sur Telegram.**
 
-BabyJournalist est un agent automatique. Chaque jour, il lit les principaux médias francophones et anglophones spécialisés en marketing et communication, et ne garde que les **articles complets et gratuits**. Il en sélectionne les 7 à 8 plus importants, les résume en français et envoie le tout sur Telegram à 8 h, heure suisse.
+MarketingSnack est un agent automatique. Chaque jour, il lit les principaux médias francophones et anglophones spécialisés en marketing et communication, et ne garde que les **articles complets et gratuits**. Il en sélectionne les 7 à 8 plus importants, les résume en français et envoie le tout sur Telegram à 8 h, heure suisse.
 
 ---
 
@@ -22,7 +22,7 @@ BabyJournalist est un agent automatique. Chaque jour, il lit les principaux méd
 ## 📬 Aperçu du message
 
 ```
-📰 REVUE DE PRESSE MARKETING
+🍪 TON MARKETING SNACK DU JOUR
 📅 Lundi, 16 novembre 2026
 
 🤖 Titre de l'actualité en français 🔥
@@ -121,7 +121,7 @@ Crée une clé API sur [console.groq.com/keys](https://console.groq.com/keys).
 | `TELEGRAM_CHAT_ID` | L'identifiant de ta conversation |
 | `GROQ_API_KEY` | Ta clé API Groq |
 
-3. Dans l'onglet **Actions**, active les workflows et lance **« Revue de presse marketing matinale »** avec le bouton **Run workflow** pour tester.
+3. Dans l'onglet **Actions**, active les workflows et lance **« Marketing Snack du matin »** avec le bouton **Run workflow** pour tester.
 
 > 🔒 Les clés ne sont jamais écrites dans le code : elles sont lues depuis les secrets GitHub, ou depuis le fichier `.env` en local, qui est exclu du dépôt par le `.gitignore`.
 

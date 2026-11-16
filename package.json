@@ -1,7 +1,7 @@
 {
-  "name": "telegram-agent-baby-journalist",
+  "name": "telegram-agent-marketing-snack",
   "version": "2.0.0",
-  "description": "Revue de presse marketing quotidienne (RP, Data, IA, SEO) résumée par IA et envoyée sur Telegram.",
+  "description": "Ta dose quotidienne d'actualité marketing (IA, Data, SEO, RP), résumée en français et envoyée sur Telegram.",
   "main": "index.js",
   "private": true,
   "scripts": {

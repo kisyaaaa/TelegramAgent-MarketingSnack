@@ -1,4 +1,4 @@
-// BabyJournalist : revue de presse marketing quotidienne envoyée sur Telegram.
+// MarketingSnack : ta dose quotidienne d'actualité marketing, envoyée sur Telegram.
 //
 // Utilisation :
 //   node index.js          → génère et envoie la revue de presse

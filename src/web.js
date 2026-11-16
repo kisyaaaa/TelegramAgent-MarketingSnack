@@ -1,7 +1,7 @@
 // Outils communs pour lire les sites des médias.
 
 // Le robot s'identifie honnêtement : plusieurs médias bloquent les faux navigateurs.
-const USER_AGENT = "Mozilla/5.0 (compatible; BabyJournalist/2.0; +https://github.com/kisyaaaa/TelegramAgent-BabyJournalist)";
+const USER_AGENT = "Mozilla/5.0 (compatible; MarketingSnack/2.0; +https://github.com/kisyaaaa/TelegramAgent-MarketingSnack)";
 const TIMEOUT_MS = 20000;
 
 const ENTITES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…", ndash: "–", mdash: "—", laquo: "«", raquo: "»", eacute: "é", egrave: "è", agrave: "à", ccedil: "ç" };
