@@ -1,35 +1,38 @@
-// Liste des médias autorisés. Aucune actualité ne provient d'un autre site.
+// Médias autorisés. Aucune actualité ne provient d'un autre site.
 //
-// - rss    : flux RSS officiel du média (essayé en premier)
-// - domaine: utilisé en secours via Google News, filtré sur ce seul site
-// - langue : langue du média (pour la recherche Google News)
+// Chaque média est lu directement sur son site, par :
+// - rss     : son flux RSS officiel
+// - sitemap : son plan de site, quand il n'a pas de flux RSS
+// - domaine : seuls les liens vers ce site sont acceptés
+//
+// Chaque article est ensuite vérifié (voir src/verification.js) : seuls les articles
+// gratuits et d'au moins 5 minutes de lecture sont proposés à l'IA.
 
 const SOURCES = [
     // Francophones
-    { nom: "Stratégies", domaine: "strategies.fr", langue: "fr" },
-    { nom: "CB News", rss: "https://www.cbnews.fr/rss.xml", domaine: "cbnews.fr", langue: "fr" },
-    { nom: "INfluencia", domaine: "influencia.net", langue: "fr" },
-    { nom: "L'ADN", rss: "https://www.ladn.eu/feed/", domaine: "ladn.eu", langue: "fr" },
-    { nom: "E-marketing", rss: "https://www.e-marketing.fr/feed", domaine: "e-marketing.fr", langue: "fr" },
-    { nom: "La Réclame", rss: "https://lareclame.fr/feed", domaine: "lareclame.fr", langue: "fr" },
-    { nom: "The Media Leader", rss: "https://fr.themedialeader.com/feed/", domaine: "themedialeader.com", langue: "fr" },
-    { nom: "Journal du Net", rss: "https://www.journaldunet.com/ebusiness/publicite/rss/", domaine: "journaldunet.com", langue: "fr" },
-    { nom: "Blog du Modérateur", rss: "https://www.blogdumoderateur.com/feed/", domaine: "blogdumoderateur.com", langue: "fr" },
-
-    // Germanophone (Suisse)
-    { nom: "persoenlich.com", rss: "https://www.persoenlich.com/rss/news.xml", domaine: "persoenlich.com", langue: "de" },
+    { nom: "Stratégies", sitemap: "https://www.strategies.fr/news-sitemap.xml", domaine: "strategies.fr" },
+    { nom: "CB News", rss: "https://www.cbnews.fr/rss.xml", domaine: "cbnews.fr" },
+    { nom: "INfluencia", sitemap: "https://www.influencia.net/sitemap.xml", domaine: "influencia.net" },
+    { nom: "L'ADN", rss: "https://www.ladn.eu/feed/", domaine: "ladn.eu" },
+    { nom: "E-marketing", rss: "https://www.e-marketing.fr/feed", domaine: "e-marketing.fr" },
+    { nom: "La Réclame", rss: "https://lareclame.fr/feed", domaine: "lareclame.fr" },
+    { nom: "The Media Leader", rss: "https://fr.themedialeader.com/feed/", domaine: "themedialeader.com" },
+    { nom: "Journal du Net", rss: "https://www.journaldunet.com/ebusiness/publicite/rss/", domaine: "journaldunet.com" },
+    { nom: "Blog du Modérateur", rss: "https://www.blogdumoderateur.com/feed/", domaine: "blogdumoderateur.com" },
 
     // Anglophones
-    { nom: "Adweek", rss: "https://www.adweek.com/feed/", domaine: "adweek.com", langue: "en" },
-    { nom: "Ad Age", domaine: "adage.com", langue: "en" },
-    { nom: "Campaign", rss: "https://www.campaignlive.com/rss/news", domaine: "campaignlive.com", langue: "en" },
-    { nom: "The Drum", domaine: "thedrum.com", langue: "en" },
-    { nom: "Marketing Week", rss: "https://www.marketingweek.com/feed/", domaine: "marketingweek.com", langue: "en" },
-    { nom: "Digiday", rss: "https://digiday.com/feed/", domaine: "digiday.com", langue: "en" },
-    { nom: "WARC", domaine: "warc.com", langue: "en" },
-    { nom: "Contagious", domaine: "contagious.com", langue: "en" },
-    { nom: "PRWeek", domaine: "prweek.com", langue: "en" },
-    { nom: "Search Engine Land", rss: "https://searchengineland.com/feed", domaine: "searchengineland.com", langue: "en" },
+    { nom: "Adweek", rss: "https://www.adweek.com/feed/", domaine: "adweek.com" },
+    { nom: "Ad Age", sitemap: "https://adage.com/arc/outboundfeeds/sitemap-news/latest/", domaine: "adage.com" },
+    { nom: "Campaign", rss: "https://www.campaignlive.com/rss/news", domaine: "campaignlive.com" },
+    { nom: "Marketing Week", rss: "https://www.marketingweek.com/feed/", domaine: "marketingweek.com" },
+    { nom: "Digiday", rss: "https://digiday.com/feed/", domaine: "digiday.com" },
+    { nom: "PRWeek", rss: "https://www.prweek.com/uk/rss/news", domaine: "prweek.com" },
+    { nom: "Search Engine Land", rss: "https://searchengineland.com/feed", domaine: "searchengineland.com" },
+
+    // Non lus pour l'instant : pas de flux accessible, ou articles réservés aux abonnés.
+    // { nom: "The Drum", domaine: "thedrum.com" },      // bloque la lecture automatique de son site
+    // { nom: "WARC", domaine: "warc.com" },             // articles réservés aux abonnés
+    // { nom: "Contagious", domaine: "contagious.com" }, // articles réservés aux abonnés
 ];
 
 // Thèmes prioritaires, dans l'ordre d'affichage. L'emoji est affiché devant le titre

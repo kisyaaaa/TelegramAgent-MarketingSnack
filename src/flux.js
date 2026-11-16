@@ -1,18 +1,14 @@
-// Récupération et lecture des flux RSS des médias.
+// Récupération des articles récents publiés par les médias suivis.
+// Chaque média est lu par son flux RSS ou par son plan de site (sitemap), directement
+// sur son propre site : les liens mènent donc toujours à l'article d'origine.
 
 // Un peu plus de 24 h pour ne rien rater entre deux envois.
 // Le lundi, on couvre aussi le week-end (peu de publications le samedi et le dimanche).
 const FENETRE_HEURES = 26;
 const FENETRE_HEURES_LUNDI = 74;
-const MAX_PAR_SOURCE = 8;
-const TIMEOUT_MS = 15000;
+const MAX_PAR_SOURCE = 12;
+const TIMEOUT_MS = 20000;
 const USER_AGENT = "Mozilla/5.0 (compatible; BabyJournalist/2.0; +https://github.com/kisyaaaa/TelegramAgent-BabyJournalist)";
-
-const GOOGLE_NEWS_LANGUES = {
-    fr: "hl=fr&gl=FR&ceid=FR:fr",
-    en: "hl=en-US&gl=US&ceid=US:en",
-    de: "hl=de-CH&gl=CH&ceid=CH:de",
-};
 
 const ENTITES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…", ndash: "–", mdash: "—", laquo: "«", raquo: "»", eacute: "é", egrave: "è", agrave: "à", ccedil: "ç" };
 
@@ -35,12 +31,12 @@ function nettoyer(texte) {
     return t.replace(/\s+/g, " ").trim();
 }
 
-// Retire les phrases ajoutées automatiquement par WordPress à la fin des extraits.
+// Retire les phrases ajoutées automatiquement (WordPress, Instagram) dans les extraits.
 function retirerMentionsAuto(texte) {
     return texte
         .replace(/\s*The post .* appeared first on .*$/i, "")
         .replace(/Voir cette publication sur Instagram|Une publication partagée par [^:]*:?/gi, " ")
-        .replace(/\s*(…|\.\.\.)?\s*(Continuer la lecture|Lire la suite|Read more|Weiterlesen)\s*(→|»)?.*$/i, "…")
+        .replace(/\s*(…|\.\.\.)?\s*(Continuer la lecture|Lire la suite|Read more)\s*(→|»)?.*$/i, "…")
         .replace(/\s+/g, " ")
         .trim();
 }
@@ -60,18 +56,35 @@ function lireLien(xml) {
     return atom ? decoderEntites(atom[1]) : "";
 }
 
+function lireDate(texte) {
+    const d = new Date(nettoyer(texte));
+    return isNaN(d) ? null : d;
+}
+
+// Flux RSS ou Atom.
 function analyserFlux(xml) {
-    const blocs = xml.split(/<item[\s>]|<entry[\s>]/i).slice(1);
-    return blocs.map((bloc) => {
-        const date = new Date(nettoyer(lireBalise(bloc, "pubDate", "dc:date", "published", "updated")));
-        return {
+    return xml
+        .split(/<item[\s>]|<entry[\s>]/i)
+        .slice(1)
+        .map((bloc) => ({
             titre: nettoyer(lireBalise(bloc, "title")),
-            description: retirerMentionsAuto(nettoyer(lireBalise(bloc, "description", "summary", "content:encoded"))).slice(0, 400),
+            description: retirerMentionsAuto(nettoyer(lireBalise(bloc, "description", "summary"))).slice(0, 400),
             lien: lireLien(bloc),
-            siteOrigine: (bloc.match(/<source[^>]*url="([^"]+)"/i) || [])[1] || "", // Google News
-            date: isNaN(date) ? null : date,
-        };
-    });
+            date: lireDate(lireBalise(bloc, "pubDate", "dc:date", "published", "updated")),
+        }));
+}
+
+// Plan de site (sitemap), avec ou sans extension "Google News".
+function analyserSitemap(xml) {
+    return xml
+        .split(/<url>/i)
+        .slice(1)
+        .map((bloc) => ({
+            titre: nettoyer(lireBalise(bloc, "news:title")), // vide si absent : lu sur la page ensuite
+            description: "",
+            lien: nettoyer(lireBalise(bloc, "loc")),
+            date: lireDate(lireBalise(bloc, "news:publication_date", "lastmod")),
+        }));
 }
 
 async function telecharger(url) {
@@ -105,73 +118,20 @@ function garderRecents(articles, source) {
     const heures = estLundiEnSuisse() ? FENETRE_HEURES_LUNDI : FENETRE_HEURES;
     const limite = Date.now() - heures * 3600 * 1000;
     return articles
-        .filter((a) => a.titre && a.lien && a.date && a.date.getTime() >= limite)
+        .filter((a) => estSurLeSite(a.lien, source.domaine)) // uniquement des liens vers le site du média
+        .filter((a) => a.date && a.date.getTime() >= limite)
         .sort((a, b) => b.date - a.date)
         .slice(0, MAX_PAR_SOURCE)
         .map((a) => ({ ...a, source: source.nom }));
 }
 
-async function lireViaRss(source) {
-    // On ne garde que les liens qui pointent vers le site du média lui-même.
-    const articles = analyserFlux(await telecharger(source.rss)).filter((a) => estSurLeSite(a.lien, source.domaine));
-    return garderRecents(articles, source);
-}
-
-async function lireViaGoogleNews(source) {
-    const params = GOOGLE_NEWS_LANGUES[source.langue] || GOOGLE_NEWS_LANGUES.fr;
-    const periode = estLundiEnSuisse() ? "3d" : "1d";
-    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${source.domaine} when:${periode}`)}&${params}`;
-    const articles = analyserFlux(await telecharger(url))
-        // Google indique le site d'origine de chaque résultat : on vérifie que c'est bien le média.
-        .filter((a) => estSurLeSite(a.siteOrigine, source.domaine) && hote(a.lien) === "news.google.com")
-        .map((a) => ({
-            ...a,
-            titre: a.titre.replace(/(^|\s+)-\s+[^-]+$/, "").trim(), // retire le " - Nom du média" ajouté par Google
-            description: "", // Google News ne fournit que le titre
-        }))
-        // Écarte les pages qui ne sont pas des articles (pages auteur, agenda...) : titre trop court.
-        .filter((a) => a.titre.split(/\s+/).length >= 4 && !/\|\s*Agenda/i.test(a.titre));
-    return garderRecents(articles, source);
-}
-
-// Complète un article dont l'extrait est trop court (ex. "Vidéo") avec la description
-// publiée sur la page de l'article (balises meta "og:description" / "description").
-async function enrichirArticle(article) {
-    if (article.description.length >= 120 || hote(article.lien) === "news.google.com") return article;
-    try {
-        const res = await fetch(article.lien, {
-            headers: { "User-Agent": USER_AGENT, Accept: "text/html" },
-            signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
-        if (!res.ok) return article;
-        const html = (await res.text()).slice(0, 300000);
-        const meta = (nom) =>
-            (html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${nom}["'][^>]+content=["']([^"']+)["']`, "i")) ||
-                html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${nom}["']`, "i")) ||
-                [])[1];
-        const texte = nettoyer(meta("og:description") || meta("description") || meta("twitter:description") || "");
-        if (texte.length > article.description.length) return { ...article, description: texte.slice(0, 600) };
-    } catch {
-        // page inaccessible : on garde l'extrait du flux
-    }
-    return article;
-}
-
-// Lit une source : flux RSS officiel d'abord, Google News (filtré sur le site) en secours.
 async function lireSource(source) {
-    if (source.rss) {
-        try {
-            const articles = await lireViaRss(source);
-            if (articles.length > 0) return { articles, mode: "rss" };
-        } catch (err) {
-            console.warn(`   ⚠️ ${source.nom} : flux RSS indisponible (${err.message})`);
-        }
-    }
     try {
-        return { articles: await lireViaGoogleNews(source), mode: "google" };
+        const xml = await telecharger(source.rss || source.sitemap);
+        const articles = source.rss ? analyserFlux(xml) : analyserSitemap(xml);
+        return { articles: garderRecents(articles, source), erreur: null };
     } catch (err) {
-        console.warn(`   ⚠️ ${source.nom} : Google News indisponible (${err.message})`);
-        return { articles: [], mode: "echec" };
+        return { articles: [], erreur: err.name === "TimeoutError" ? "délai dépassé" : err.message };
     }
 }
 
@@ -179,25 +139,24 @@ function cleTitre(titre) {
     return titre.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "");
 }
 
-// Récupère tous les articles récents de toutes les sources, sans doublons.
+// Récupère les articles récents de toutes les sources, sans doublons, du plus récent au plus ancien.
 async function recupererArticles(sources) {
     const resultats = await Promise.all(sources.map(lireSource));
     const vus = new Set();
     const articles = [];
 
-    resultats.forEach(({ articles: liste, mode }, i) => {
-        console.log(`   ${mode === "echec" ? "❌" : "✅"} ${sources[i].nom} : ${liste.length} article(s) [${mode}]`);
+    resultats.forEach(({ articles: liste, erreur }, i) => {
+        if (erreur) console.warn(`   ❌ ${sources[i].nom} : inaccessible (${erreur})`);
+        else console.log(`   📥 ${sources[i].nom} : ${liste.length} article(s) récent(s)`);
         for (const a of liste) {
-            const cle = cleTitre(a.titre);
-            if (vus.has(a.lien) || vus.has(cle)) continue;
-            vus.add(a.lien);
-            vus.add(cle);
+            const cles = [a.lien, a.titre && cleTitre(a.titre)].filter(Boolean);
+            if (cles.some((c) => vus.has(c))) continue;
+            cles.forEach((c) => vus.add(c));
             articles.push(a);
         }
     });
 
-    // Du plus récent au plus ancien : si la liste est tronquée, on perd les plus anciens.
-    return articles.sort((a, b) => b.date - a.date).map((a, id) => ({ id, ...a }));
+    return articles.sort((a, b) => b.date - a.date);
 }
 
-module.exports = { recupererArticles, enrichirArticle, analyserFlux, nettoyer, estSurLeSite };
+module.exports = { recupererArticles, analyserFlux, analyserSitemap, estSurLeSite, decoderEntites };
