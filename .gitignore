@@ -1,0 +1,13 @@
+# Secrets (tokens Telegram, clé Groq) : ne jamais versionner
+.env
+.env.*
+!.env.example
+
+# Dépendances
+node_modules/
+
+# Logs et fichiers système
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
