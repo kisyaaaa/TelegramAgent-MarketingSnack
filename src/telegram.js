@@ -19,16 +19,16 @@ function formaterEntete(date) {
     return `📰 <b>REVUE DE PRESSE MARKETING</b>\n📅 ${echapper(jour.charAt(0).toUpperCase() + jour.slice(1))}`;
 }
 
-function formaterSujet(sujet, themes) {
-    const theme = themes.find((t) => t.nom === sujet.theme) || { nom: sujet.theme, emoji: "🎯" };
+// Une actualité : emoji du thème + titre en gras, résumé, médias et lien vers l'article.
+function formaterSujet(sujet, themes, emojiAutre) {
+    const emoji = themes.find((t) => t.nom === sujet.theme)?.emoji || emojiAutre;
     const medias = [...new Set(sujet.articles.map((a) => a.source))].join(", ");
-    const lien = sujet.articles[0].lien;
     const etoile = sujet.majeur ? " 🔥" : "";
 
     return [
-        `<b>${theme.emoji} ${echapper(theme.nom.toUpperCase())}</b>${etoile}`,
+        `${emoji} <b>${echapper(sujet.titre)}</b>${etoile}`,
         echapper(sujet.resume),
-        `🗞️ <i>${echapper(medias)}</i> · <a href="${echapper(lien)}">Lire l'article</a>`,
+        `🗞️ <i>${echapper(medias)}</i> · <a href="${echapper(sujet.lien)}">Lire l'article</a>`,
     ].join("\n");
 }
 

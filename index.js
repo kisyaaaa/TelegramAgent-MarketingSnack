@@ -4,13 +4,14 @@
 //   node index.js          → génère et envoie la revue de presse
 //   node index.js --test   → génère la revue de presse et l'affiche sans l'envoyer
 
-const { SOURCES, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX } = require("./src/sources");
-const { recupererArticles } = require("./src/flux");
+const { SOURCES, THEMES, EMOJI_AUTRE, NB_ACTUS_MIN, NB_ACTUS_MAX } = require("./src/sources");
+const { recupererArticles, enrichirArticle } = require("./src/flux");
 const { selectionnerSujets, resumerSujet } = require("./src/ia");
 const { formaterEntete, formaterSujet, decouper, envoyer } = require("./src/telegram");
 const { doitEnvoyer } = require("./src/horaire");
 
 const MODE_TEST = process.argv.includes("--test");
+const AVEC_IA = Boolean(process.env.GROQ_API_KEY);
 
 function verifierConfiguration() {
     const requises = MODE_TEST ? [] : ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "GROQ_API_KEY"];
@@ -20,45 +21,45 @@ function verifierConfiguration() {
     }
 }
 
-// Sélection de secours si l'IA est indisponible : les articles les plus récents, un par média.
-function selectionSimple(articles) {
+// Mode test sans clé Groq uniquement : un article récent par média, textes bruts non traduits.
+// Ne sert qu'à vérifier la lecture des médias et la mise en forme, jamais pour un envoi réel.
+function selectionSansIA(articles) {
     const medias = new Set();
     return articles
         .filter((a) => !medias.has(a.source) && medias.add(a.source))
         .slice(0, NB_ACTUS_MAX)
-        .map((a) => ({ articles: [a], theme: "Marketing", majeur: false }));
+        .map((a) => ({ articles: [a], theme: null, majeur: false }));
 }
 
-async function choisirSujets(articles) {
-    if (!process.env.GROQ_API_KEY) {
-        console.warn("⚠️ GROQ_API_KEY absente : sélection simple sans IA (mode test).");
-        return selectionSimple(articles);
-    }
-    try {
-        const sujets = await selectionnerSujets(articles, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX);
-        if (sujets.length > 0) return sujets;
-        console.warn("⚠️ L'IA n'a retenu aucun sujet : sélection simple.");
-    } catch (err) {
-        console.warn(`⚠️ Sélection IA impossible (${err.message}) : sélection simple.`);
-    }
-    return selectionSimple(articles);
+// Lien affiché : on préfère le lien direct vers le site du média à un lien Google News.
+function choisirLien(articles) {
+    return (articles.find((a) => !a.lien.includes("news.google.com")) || articles[0]).lien;
 }
 
 async function rediger(sujet) {
-    if (process.env.GROQ_API_KEY) {
-        try {
-            return await resumerSujet(sujet);
-        } catch (err) {
-            console.warn(`⚠️ Résumé impossible (${err.message}).`);
-        }
+    sujet.articles = await Promise.all(sujet.articles.map(enrichirArticle));
+    sujet.lien = choisirLien(sujet.articles);
+
+    if (!AVEC_IA) {
+        const a = sujet.articles[0];
+        return { ...sujet, titre: a.titre, resume: a.description || "(pas d'extrait)" };
     }
-    const a = sujet.articles[0];
-    return a.description ? a.description.slice(0, 280) : a.titre;
+    try {
+        const texte = await resumerSujet(sujet);
+        if (!texte) {
+            console.warn(`   ⏭️ Écarté (informations insuffisantes) : ${sujet.articles[0].titre}`);
+            return null;
+        }
+        return { ...sujet, ...texte };
+    } catch (err) {
+        console.warn(`   ⚠️ Résumé impossible, sujet écarté (${err.message}) : ${sujet.articles[0].titre}`);
+        return null;
+    }
 }
 
 function trierSujets(sujets) {
-    const ordre = THEMES.map((t) => t.nom);
-    return [...sujets].sort((a, b) => b.majeur - a.majeur || ordre.indexOf(a.theme) - ordre.indexOf(b.theme));
+    const rang = (theme) => (theme ? THEMES.findIndex((t) => t.nom === theme) : THEMES.length);
+    return [...sujets].sort((a, b) => b.majeur - a.majeur || rang(a.theme) - rang(b.theme));
 }
 
 async function lancerAgent() {
@@ -78,14 +79,26 @@ async function lancerAgent() {
     if (articles.length === 0) {
         blocs.push("Aucune actualité publiée par les médias suivis depuis hier.");
     } else {
-        console.log("🧠 Sélection des sujets...");
-        const sujets = trierSujets(await choisirSujets(articles));
-
-        console.log(`✍️ Rédaction de ${sujets.length} résumé(s)...`);
-        for (const sujet of sujets) {
-            sujet.resume = await rediger(sujet);
-            blocs.push(formaterSujet(sujet, THEMES));
+        let selection;
+        if (AVEC_IA) {
+            console.log("🧠 Sélection des sujets par l'IA...");
+            // Pas de solution de secours : sans IA, pas de résumés en français, donc pas d'envoi.
+            selection = await selectionnerSujets(articles, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX);
+            if (selection.length === 0) throw new Error("L'IA n'a retenu aucun sujet.");
+        } else {
+            console.warn("⚠️ GROQ_API_KEY absente : sélection sans IA (mode test uniquement).");
+            selection = selectionSansIA(articles);
         }
+
+        console.log(`✍️ Rédaction de ${selection.length} résumé(s)...`);
+        const sujets = [];
+        for (const s of selection) {
+            const sujet = await rediger(s);
+            if (sujet) sujets.push(sujet);
+        }
+        if (sujets.length === 0) throw new Error("Aucun résumé n'a pu être rédigé.");
+
+        for (const sujet of trierSujets(sujets)) blocs.push(formaterSujet(sujet, THEMES, EMOJI_AUTRE));
     }
 
     const messages = decouper(blocs);

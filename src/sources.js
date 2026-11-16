@@ -32,17 +32,18 @@ const SOURCES = [
     { nom: "Search Engine Land", rss: "https://searchengineland.com/feed", domaine: "searchengineland.com", langue: "en" },
 ];
 
-// Thèmes de la revue de presse, dans l'ordre d'affichage.
+// Thèmes prioritaires, dans l'ordre d'affichage. L'emoji est affiché devant le titre
+// de chaque actualité. Un sujet important hors de ces thèmes reçoit EMOJI_AUTRE.
 const THEMES = [
     { nom: "IA & marketing", emoji: "🤖" },
     { nom: "Data", emoji: "📊" },
     { nom: "SEO", emoji: "🔎" },
     { nom: "RP", emoji: "📣" },
-    { nom: "Marketing", emoji: "🎯" },
 ];
+const EMOJI_AUTRE = "📌";
 
 // Nombre d'actualités dans la revue de presse.
 const NB_ACTUS_MIN = 7;
 const NB_ACTUS_MAX = 8;
 
-module.exports = { SOURCES, THEMES, NB_ACTUS_MIN, NB_ACTUS_MAX };
+module.exports = { SOURCES, THEMES, EMOJI_AUTRE, NB_ACTUS_MIN, NB_ACTUS_MAX };
