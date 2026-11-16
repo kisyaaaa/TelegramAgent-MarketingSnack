@@ -13,7 +13,7 @@ const TENTATIVES = 3;
 
 const CONSIGNE_SYSTEME =
     "Tu es un journaliste spécialisé en marketing et communication. Tu écris TOUJOURS en français, " +
-    "même quand les articles fournis sont en anglais ou en allemand : tu traduis tout.";
+    "même quand les articles fournis sont en anglais : tu traduis tout.";
 
 let modeleChoisi = null;
 
@@ -73,7 +73,7 @@ async function appelerGroq(consigne, { temperature = 0.2 } = {}) {
 async function selectionnerSujets(articles, themes, nbMin, nbMax) {
     const candidats = articles.slice(0, MAX_CANDIDATS);
     const liste = candidats
-        .map((a) => `[${a.id}] (${a.source}) ${a.titre}${a.description ? ` — ${a.description.slice(0, 120)}` : ""}`)
+        .map((a) => `[${a.id}] (${a.source}) ${a.titre} — ${(a.description || a.texte || "").slice(0, 160)}`)
         .join("\n");
     const nomsThemes = themes.map((t) => t.nom);
 
@@ -121,8 +121,10 @@ Valeurs possibles pour "theme" : ${[...nomsThemes, "Autre"].map((n) => `"${n}"`)
 // Renvoie null si les informations disponibles sont insuffisantes.
 async function resumerSujet(sujet) {
     const nbPhrases = sujet.majeur ? 4 : 2;
+    // Texte complet de l'article (tronqué pour rester dans le quota de tokens Groq).
+    const parArticle = Math.floor(6000 / sujet.articles.length);
     const sourcesTexte = sujet.articles
-        .map((a) => `Média : ${a.source}\nTitre : ${a.titre}${a.description ? `\nTexte : ${a.description}` : ""}`)
+        .map((a) => `Média : ${a.source}\nTitre : ${a.titre}\nArticle : ${(a.texte || a.description || "").slice(0, parArticle)}`)
         .join("\n\n");
 
     const consigne = `Voici une actualité publiée par un ou plusieurs médias :

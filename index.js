@@ -5,7 +5,8 @@
 //   node index.js --test   → génère la revue de presse et l'affiche sans l'envoyer
 
 const { SOURCES, THEMES, EMOJI_AUTRE, NB_ACTUS_MIN, NB_ACTUS_MAX } = require("./src/sources");
-const { recupererArticles, enrichirArticle } = require("./src/flux");
+const { recupererArticles } = require("./src/flux");
+const { verifierArticles, MOTS_MIN } = require("./src/verification");
 const { selectionnerSujets, resumerSujet } = require("./src/ia");
 const { formaterEntete, formaterSujet, decouper, envoyer } = require("./src/telegram");
 const { doitEnvoyer } = require("./src/horaire");
@@ -31,18 +32,13 @@ function selectionSansIA(articles) {
         .map((a) => ({ articles: [a], theme: null, majeur: false }));
 }
 
-// Lien affiché : on préfère le lien direct vers le site du média à un lien Google News.
-function choisirLien(articles) {
-    return (articles.find((a) => !a.lien.includes("news.google.com")) || articles[0]).lien;
-}
-
 async function rediger(sujet) {
-    sujet.articles = await Promise.all(sujet.articles.map(enrichirArticle));
-    sujet.lien = choisirLien(sujet.articles);
+    sujet.lien = sujet.articles[0].lien;
+    sujet.minutes = Math.max(...sujet.articles.map((a) => a.minutes || 0));
 
     if (!AVEC_IA) {
         const a = sujet.articles[0];
-        return { ...sujet, titre: a.titre, resume: a.description || "(pas d'extrait)" };
+        return { ...sujet, titre: a.titre, resume: (a.description || a.texte || "").slice(0, 280) };
     }
     try {
         const texte = await resumerSujet(sujet);
@@ -71,13 +67,17 @@ async function lancerAgent() {
     console.log("🚀 L'agent se réveille...");
 
     console.log("🔎 Lecture des médias...");
-    const articles = await recupererArticles(SOURCES);
-    console.log(`📚 ${articles.length} article(s) récent(s) trouvé(s).`);
+    const recents = await recupererArticles(SOURCES);
+    console.log(`📚 ${recents.length} article(s) récent(s) trouvé(s).`);
+
+    console.log(`🔐 Vérification des articles (gratuits, au moins ${MOTS_MIN} mots ≈ 5 min de lecture)...`);
+    const articles = (await verifierArticles(recents)).map((a, id) => ({ ...a, id }));
+    console.log(`✅ ${articles.length} article(s) valide(s).`);
 
     const blocs = [formaterEntete(new Date())];
 
     if (articles.length === 0) {
-        blocs.push("Aucune actualité publiée par les médias suivis depuis hier.");
+        blocs.push("Aucun article complet et gratuit publié par les médias suivis depuis hier.");
     } else {
         let selection;
         if (AVEC_IA) {
