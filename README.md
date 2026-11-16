@@ -160,3 +160,7 @@ Pour changer l'heure d'envoi, modifie **les deux** fichiers. Le lancement est pr
 - GitHub démarre parfois les tâches planifiées avec quelques minutes de retard : le message arrive généralement entre 8 h et 8 h 15.
 - Sur un dépôt public, GitHub **met en pause les tâches planifiées après 60 jours sans activité** sur le dépôt. Il suffit alors de les réactiver dans l'onglet **Actions**.
 - Le quota gratuit de Groq suffit largement pour un envoi par jour.
+
+## 📄 Licence
+
+Ce projet est distribué sous licence [MIT](LICENSE) : tu peux le réutiliser, le modifier et le partager librement, à condition de conserver la mention de copyright.
