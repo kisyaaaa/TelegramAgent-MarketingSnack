@@ -1,8 +1,7 @@
 // Médias autorisés. Aucune actualité ne provient d'un autre site.
 //
-// Chaque média est lu directement sur son site, par :
+// Chaque média est lu directement sur son site :
 // - rss     : son flux RSS officiel
-// - sitemap : son plan de site, quand il n'a pas de flux RSS
 // - domaine : seuls les liens vers ce site sont acceptés
 //
 // Chaque article est ensuite vérifié (voir src/verification.js) : seuls les articles
@@ -21,14 +20,13 @@ const SOURCES = [
 
     // Anglophones
     { nom: "Digiday", rss: "https://digiday.com/feed/", domaine: "digiday.com" },
-    { nom: "Marketing Week", rss: "https://www.marketingweek.com/feed/", domaine: "marketingweek.com" },
-    { nom: "Search Engine Land", rss: "https://searchengineland.com/feed", domaine: "searchengineland.com" },
     { nom: "Search Engine Journal", rss: "https://www.searchenginejournal.com/feed/", domaine: "searchenginejournal.com" },
     { nom: "HubSpot", rss: "https://blog.hubspot.com/marketing/rss.xml", domaine: "hubspot.com" },
     { nom: "Moz", rss: "https://moz.com/posts/rss/blog", domaine: "moz.com" },
 
     // Retirés : articles presque toujours payants, trop courts, ou site illisible automatiquement.
-    // Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, The Drum, WARC, Contagious.
+    // Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, Marketing Week,
+    // Search Engine Land, The Drum, WARC, Contagious.
 ];
 
 // Thèmes prioritaires, dans l'ordre d'affichage. L'emoji est affiché devant le titre
