@@ -150,7 +150,10 @@ Tout se règle dans [`src/sources.js`](src/sources.js) :
 
 La longueur minimale des articles se règle avec `MOTS_MIN` dans [`src/verification.js`](src/verification.js). Elle vaut 1000 mots par défaut, soit environ 5 minutes de lecture.
 
-Pour changer l'heure d'envoi, modifie `HEURE_CIBLE_SUISSE` dans [`src/horaire.js`](src/horaire.js) **et** les deux lignes `cron` dans [`matin.yml`](.github/workflows/matin.yml).
+Pour changer l'heure d'envoi, modifie **les deux** fichiers. Le lancement est prévu 5 minutes avant l'heure voulue, à cause du léger retard de GitHub. Exemple pour un envoi vers 9 h :
+
+- [`src/horaire.js`](src/horaire.js) : `HEURE_CIBLE_SUISSE = 8` (lancement à 8 h 55).
+- [`matin.yml`](.github/workflows/matin.yml) : `'55 7 * * *'` pour l'hiver et `'55 6 * * *'` pour l'été, car les heures du `cron` sont en UTC.
 
 ## ℹ️ Bon à savoir
 
