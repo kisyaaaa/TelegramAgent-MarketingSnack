@@ -2,18 +2,19 @@
 
 **Ta revue de presse marketing, résumée en français et livrée chaque matin sur Telegram.**
 
-BabyJournalist est un agent automatique qui lit chaque jour 20 médias spécialisés en marketing et communication, sélectionne les 7 à 8 actualités les plus importantes et les résume en français. Il envoie le tout sur Telegram à 8 h, heure suisse.
+BabyJournalist est un agent automatique. Chaque jour, il lit les principaux médias francophones et anglophones spécialisés en marketing et communication, et ne garde que les **articles complets et gratuits**. Il en sélectionne les 7 à 8 plus importants, les résume en français et envoie le tout sur Telegram à 8 h, heure suisse.
 
 ---
 
 ## ✨ Fonctionnalités
 
-- **20 médias de référence uniquement** : aucune actualité ne provient d'un autre site.
+- **Médias de référence uniquement** : aucune actualité ne provient d'un autre site, et chaque lien mène directement à l'article sur le site du média.
+- **Articles gratuits uniquement** : chaque page est ouverte comme le ferait une personne sans abonnement. Les articles signalés payants, ou dont la suite est réservée aux abonnés, sont écartés.
+- **Vrais articles, pas des brèves** : seuls les articles d'au moins **1000 mots (≈ 5 minutes de lecture)** sont retenus. Le temps de lecture est affiché dans le message.
 - **Contenu ciblé** sur quatre thèmes prioritaires : 🤖 IA dans le marketing, 📊 Data, 🔎 SEO et 📣 RP. Un sujet marketing vraiment important hors de ces thèmes peut aussi être retenu (📌).
-- **Sélection par IA** : les nominations, les cérémonies de prix, les podcasts, les vidéos sans explication et les contenus sponsorisés sont écartés.
+- **Sélection par IA** : les nominations, les cérémonies de prix, les podcasts et les contenus sponsorisés sont écartés.
 - **Regroupement des doublons** : une même actualité reprise par plusieurs médias devient un seul sujet, avec la liste des médias.
-- **Tout en français** : titre et résumé traduits, même pour les articles en anglais ou en allemand. Chaque résumé fait 2 phrases, ou 4 pour une actualité majeure 🔥 reprise par plusieurs médias.
-- **Liens vérifiés** : chaque lien pointe vers le site du média qui a publié l'article. Quand l'extrait du flux est trop court, l'agent lit la description publiée sur la page de l'article.
+- **Tout en français** : titre et résumé rédigés en français à partir du texte complet de l'article, même pour les articles en anglais. Chaque résumé fait 2 phrases, ou 4 pour une actualité majeure 🔥 reprise par plusieurs médias.
 - **Édition du lundi** : elle couvre aussi le week-end.
 - **Envoi à 8 h en Suisse**, été comme hiver, sans rien changer au changement d'heure.
 - **Fiable** : le message est découpé s'il dépasse la limite de Telegram. Si l'IA est indisponible, aucun message non traduit n'est envoyé : l'action GitHub échoue et t'avertit par e-mail.
@@ -26,31 +27,34 @@ BabyJournalist est un agent automatique qui lit chaque jour 20 médias spéciali
 
 🤖 Titre de l'actualité en français 🔥
 Résumé en quatre phrases, car l'actualité est reprise par plusieurs médias…
-🗞️ Digiday, Adweek, The Drum · Lire l'article
+🗞️ Digiday, L'ADN · ⏱️ 8 min · Lire l'article
 
 🔎 Titre de l'actualité en français
 Résumé en deux phrases…
-🗞️ Search Engine Land · Lire l'article
+🗞️ Blog du Modérateur · ⏱️ 6 min · Lire l'article
 ```
 
 L'emoji indique le thème : 🤖 IA & marketing · 📊 Data · 🔎 SEO · 📣 RP · 📌 autre sujet important.
 
 ## 🗞️ Médias suivis
 
-| Francophones | Anglophones | Suisse (DE) |
-|---|---|---|
-| Stratégies | Adweek | persoenlich.com |
-| CB News | Ad Age | |
-| INfluencia | Campaign | |
-| L'ADN | The Drum | |
-| E-marketing | Marketing Week | |
-| La Réclame | Digiday | |
-| The Media Leader | WARC | |
-| Journal du Net | Contagious | |
-| Blog du Modérateur | PRWeek | |
-| | Search Engine Land | |
+| Francophones | Anglophones |
+|---|---|
+| Stratégies | Adweek |
+| CB News | Ad Age |
+| INfluencia | Campaign |
+| L'ADN | Marketing Week |
+| E-marketing | Digiday |
+| La Réclame | PRWeek |
+| The Media Leader | Search Engine Land |
+| Journal du Net | |
+| Blog du Modérateur | |
 
-Chaque média est lu par son **flux RSS officiel**. Quand un média n'en propose pas, ou que le flux est inaccessible, l'agent passe par **Google News, filtré sur le seul site de ce média**. Certains médias (WARC, Contagious, Ad Age…) sont en grande partie payants : seuls leurs titres publics sont exploités.
+Chaque média est lu directement sur son site, par son **flux RSS** ou, à défaut, par son **plan de site** (sitemap).
+
+Comme seuls les articles gratuits et complets sont gardés, certains médias apparaissent rarement : Ad Age et Adweek réservent la plupart de leurs articles aux abonnés, et Stratégies et CB News publient surtout des brèves ou des articles partiellement payants. Certains sites (Marketing Week, Search Engine Land) bloquent parfois la lecture automatique : ils sont alors ignorés ce jour-là.
+
+**Non suivis :** The Drum bloque la lecture automatique de son site. WARC et Contagious réservent leurs articles aux abonnés. Ils restent listés en commentaire dans [`src/sources.js`](src/sources.js).
 
 ## ⚙️ Fonctionnement
 
@@ -58,16 +62,20 @@ Chaque média est lu par son **flux RSS officiel**. Quand un média n'en propose
 GitHub Actions (chaque matin)
         │
         ▼
-1. Lecture des flux RSS des 20 médias  ── src/flux.js
+1. Lecture des flux RSS et sitemaps des médias   ── src/flux.js
         │
         ▼
-2. Sélection de 7-8 sujets par l'IA    ── src/ia.js  (Groq · Llama 3.3 70B)
+2. Vérification de chaque article :              ── src/verification.js
+   gratuit ? au moins 5 min de lecture ?
         │
         ▼
-3. Résumé en français de chaque sujet  ── src/ia.js
+3. Sélection de 7-8 sujets par l'IA              ── src/ia.js  (Groq)
         │
         ▼
-4. Mise en forme et envoi              ── src/telegram.js
+4. Titre et résumé en français                   ── src/ia.js
+        │
+        ▼
+5. Mise en forme et envoi                        ── src/telegram.js
 ```
 
 ### Structure du projet
@@ -77,7 +85,8 @@ GitHub Actions (chaque matin)
 ├── index.js                  # Point d'entrée : orchestre les étapes
 ├── src/
 │   ├── sources.js            # Médias suivis, thèmes et nombre d'actualités
-│   ├── flux.js               # Lecture des flux RSS et filtre sur les dernières 24 h
+│   ├── flux.js               # Lecture des flux RSS / sitemaps, filtre sur les dernières 24 h
+│   ├── verification.js       # Écarte les articles payants ou trop courts
 │   ├── ia.js                 # Sélection des sujets et résumés (API Groq)
 │   ├── telegram.js           # Mise en forme HTML et envoi Telegram
 │   └── horaire.js            # Gestion de l'heure suisse (été / hiver)
@@ -135,9 +144,11 @@ Sans clé Groq, le mode test fonctionne quand même : il fait une sélection sim
 
 Tout se règle dans [`src/sources.js`](src/sources.js) :
 
-- **Ajouter ou retirer un média** : ajoute une ligne `{ nom, rss, domaine, langue }`. Le champ `rss` est facultatif.
+- **Ajouter ou retirer un média** : ajoute une ligne `{ nom, rss, domaine }`, ou `{ nom, sitemap, domaine }` si le média n'a pas de flux RSS.
 - **Changer les thèmes** : modifie la liste `THEMES`, et adapte la consigne dans [`src/ia.js`](src/ia.js).
 - **Changer le nombre d'actualités** : `NB_ACTUS_MIN` et `NB_ACTUS_MAX`.
+
+La longueur minimale des articles se règle avec `MOTS_MIN` dans [`src/verification.js`](src/verification.js). Elle vaut 1000 mots par défaut, soit environ 5 minutes de lecture.
 
 Pour changer l'heure d'envoi, modifie `HEURE_CIBLE_SUISSE` dans [`src/horaire.js`](src/horaire.js) **et** les deux lignes `cron` dans [`matin.yml`](.github/workflows/matin.yml).
 
