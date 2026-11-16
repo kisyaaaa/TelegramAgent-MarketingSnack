@@ -9,13 +9,14 @@ BabyJournalist est un agent automatique qui lit chaque jour 20 médias spéciali
 ## ✨ Fonctionnalités
 
 - **20 médias de référence uniquement** : aucune actualité ne provient d'un autre site.
-- **Contenu ciblé** sur quatre thèmes : 📣 RP, 📊 Data, 🤖 IA dans le marketing et 🔎 SEO. Un sujet marketing majeur hors de ces thèmes peut aussi être retenu (🎯 Marketing).
-- **Sélection par IA** : les nominations, les cérémonies de prix, les podcasts et les contenus sponsorisés sont écartés.
+- **Contenu ciblé** sur quatre thèmes prioritaires : 🤖 IA dans le marketing, 📊 Data, 🔎 SEO et 📣 RP. Un sujet marketing vraiment important hors de ces thèmes peut aussi être retenu (📌).
+- **Sélection par IA** : les nominations, les cérémonies de prix, les podcasts, les vidéos sans explication et les contenus sponsorisés sont écartés.
 - **Regroupement des doublons** : une même actualité reprise par plusieurs médias devient un seul sujet, avec la liste des médias.
-- **Résumés en français**, même pour les articles en anglais ou en allemand : 2 phrases par sujet, ou 4 pour une actualité majeure 🔥 reprise par plusieurs médias.
+- **Tout en français** : titre et résumé traduits, même pour les articles en anglais ou en allemand. Chaque résumé fait 2 phrases, ou 4 pour une actualité majeure 🔥 reprise par plusieurs médias.
+- **Liens vérifiés** : chaque lien pointe vers le site du média qui a publié l'article. Quand l'extrait du flux est trop court, l'agent lit la description publiée sur la page de l'article.
 - **Édition du lundi** : elle couvre aussi le week-end.
 - **Envoi à 8 h en Suisse**, été comme hiver, sans rien changer au changement d'heure.
-- **Fiable** : le message est découpé s'il dépasse la limite de Telegram, et chaque erreur fait échouer l'action GitHub, ce qui t'avertit par e-mail.
+- **Fiable** : le message est découpé s'il dépasse la limite de Telegram. Si l'IA est indisponible, aucun message non traduit n'est envoyé : l'action GitHub échoue et t'avertit par e-mail.
 
 ## 📬 Aperçu du message
 
@@ -23,14 +24,16 @@ BabyJournalist est un agent automatique qui lit chaque jour 20 médias spéciali
 📰 REVUE DE PRESSE MARKETING
 📅 Lundi, 16 novembre 2026
 
-🤖 IA & MARKETING 🔥
-Résumé de l'actualité en quatre phrases, car elle est reprise par plusieurs médias…
+🤖 Titre de l'actualité en français 🔥
+Résumé en quatre phrases, car l'actualité est reprise par plusieurs médias…
 🗞️ Digiday, Adweek, The Drum · Lire l'article
 
-🔎 SEO
-Résumé de l'actualité en deux phrases…
+🔎 Titre de l'actualité en français
+Résumé en deux phrases…
 🗞️ Search Engine Land · Lire l'article
 ```
+
+L'emoji indique le thème : 🤖 IA & marketing · 📊 Data · 🔎 SEO · 📣 RP · 📌 autre sujet important.
 
 ## 🗞️ Médias suivis
 
