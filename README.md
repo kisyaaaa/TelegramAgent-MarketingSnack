@@ -40,21 +40,20 @@ L'emoji indique le thème : 🤖 IA & marketing · 📊 Data · 🔎 SEO · 📣
 
 | Francophones | Anglophones |
 |---|---|
-| Stratégies | Adweek |
-| CB News | Ad Age |
-| INfluencia | Campaign |
-| L'ADN | Marketing Week |
-| E-marketing | Digiday |
-| La Réclame | PRWeek |
-| The Media Leader | Search Engine Land |
-| Journal du Net | |
-| Blog du Modérateur | |
+| L'ADN | Digiday |
+| E-marketing | Marketing Week |
+| La Réclame | Search Engine Land |
+| The Media Leader | Search Engine Journal |
+| Journal du Net | HubSpot Marketing Blog |
+| Blog du Modérateur | Moz Blog |
+| Webmarketing & co'm | |
+| Abondance | |
 
 Chaque média est lu directement sur son site, par son **flux RSS** ou, à défaut, par son **plan de site** (sitemap).
 
-Comme seuls les articles gratuits et complets sont gardés, certains médias apparaissent rarement : Ad Age et Adweek réservent la plupart de leurs articles aux abonnés, et Stratégies et CB News publient surtout des brèves ou des articles partiellement payants. Certains sites (Marketing Week, Search Engine Land) bloquent parfois la lecture automatique : ils sont alors ignorés ce jour-là.
+Ces médias ont été choisis parce qu'ils publient régulièrement des articles **gratuits et complets**. HubSpot et Moz proposent surtout des guides et des analyses de fond plutôt que de l'actualité chaude. Certains sites (Marketing Week, Search Engine Land) bloquent parfois la lecture automatique : ils sont alors ignorés ce jour-là.
 
-**Non suivis :** The Drum bloque la lecture automatique de son site. WARC et Contagious réservent leurs articles aux abonnés. Ils restent listés en commentaire dans [`src/sources.js`](src/sources.js).
+**Médias écartés :** Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, The Drum, WARC et Contagious. Leurs articles sont presque toujours payants ou trop courts, ou leur site bloque la lecture automatique.
 
 ## ⚙️ Fonctionnement
 
