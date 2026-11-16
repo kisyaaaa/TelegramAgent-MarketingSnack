@@ -10,29 +10,25 @@
 
 const SOURCES = [
     // Francophones
-    { nom: "Stratégies", sitemap: "https://www.strategies.fr/news-sitemap.xml", domaine: "strategies.fr" },
-    { nom: "CB News", rss: "https://www.cbnews.fr/rss.xml", domaine: "cbnews.fr" },
-    { nom: "INfluencia", sitemap: "https://www.influencia.net/sitemap.xml", domaine: "influencia.net" },
     { nom: "L'ADN", rss: "https://www.ladn.eu/feed/", domaine: "ladn.eu" },
     { nom: "E-marketing", rss: "https://www.e-marketing.fr/feed", domaine: "e-marketing.fr" },
     { nom: "La Réclame", rss: "https://lareclame.fr/feed", domaine: "lareclame.fr" },
     { nom: "The Media Leader", rss: "https://fr.themedialeader.com/feed/", domaine: "themedialeader.com" },
     { nom: "Journal du Net", rss: "https://www.journaldunet.com/ebusiness/publicite/rss/", domaine: "journaldunet.com" },
     { nom: "Blog du Modérateur", rss: "https://www.blogdumoderateur.com/feed/", domaine: "blogdumoderateur.com" },
+    { nom: "Webmarketing & co'm", rss: "https://www.webmarketing-com.com/feed", domaine: "webmarketing-com.com" },
+    { nom: "Abondance", rss: "https://www.abondance.com/feed", domaine: "abondance.com" },
 
     // Anglophones
-    { nom: "Adweek", rss: "https://www.adweek.com/feed/", domaine: "adweek.com" },
-    { nom: "Ad Age", sitemap: "https://adage.com/arc/outboundfeeds/sitemap-news/latest/", domaine: "adage.com" },
-    { nom: "Campaign", rss: "https://www.campaignlive.com/rss/news", domaine: "campaignlive.com" },
-    { nom: "Marketing Week", rss: "https://www.marketingweek.com/feed/", domaine: "marketingweek.com" },
     { nom: "Digiday", rss: "https://digiday.com/feed/", domaine: "digiday.com" },
-    { nom: "PRWeek", rss: "https://www.prweek.com/uk/rss/news", domaine: "prweek.com" },
+    { nom: "Marketing Week", rss: "https://www.marketingweek.com/feed/", domaine: "marketingweek.com" },
     { nom: "Search Engine Land", rss: "https://searchengineland.com/feed", domaine: "searchengineland.com" },
+    { nom: "Search Engine Journal", rss: "https://www.searchenginejournal.com/feed/", domaine: "searchenginejournal.com" },
+    { nom: "HubSpot", rss: "https://blog.hubspot.com/marketing/rss.xml", domaine: "hubspot.com" },
+    { nom: "Moz", rss: "https://moz.com/posts/rss/blog", domaine: "moz.com" },
 
-    // Non lus pour l'instant : pas de flux accessible, ou articles réservés aux abonnés.
-    // { nom: "The Drum", domaine: "thedrum.com" },      // bloque la lecture automatique de son site
-    // { nom: "WARC", domaine: "warc.com" },             // articles réservés aux abonnés
-    // { nom: "Contagious", domaine: "contagious.com" }, // articles réservés aux abonnés
+    // Retirés : articles presque toujours payants, trop courts, ou site illisible automatiquement.
+    // Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, The Drum, WARC, Contagious.
 ];
 
 // Thèmes prioritaires, dans l'ordre d'affichage. L'emoji est affiché devant le titre
