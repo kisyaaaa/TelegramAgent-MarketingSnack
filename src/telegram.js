@@ -28,7 +28,7 @@ function formaterSujet(sujet, themes, emojiAutre) {
     return [
         `${emoji} <b>${echapper(sujet.titre)}</b>${etoile}`,
         echapper(sujet.resume),
-        `🗞️ <i>${echapper(medias)}</i>${sujet.minutes ? ` · ⏱️ ${sujet.minutes} min` : ""} · <a href="${echapper(sujet.lien)}">Lire l'article</a>`,
+        `🗞️ <i>${echapper(medias)}</i> · ⏱️ ${sujet.minutes} min · <a href="${echapper(sujet.lien)}">Lire l'article</a>`,
     ].join("\n");
 }
 
@@ -71,4 +71,4 @@ async function envoyer(messages) {
     for (const message of messages) await envoyerMessage(message);
 }
 
-module.exports = { echapper, formaterEntete, formaterSujet, decouper, envoyer };
+module.exports = { formaterEntete, formaterSujet, decouper, envoyer };

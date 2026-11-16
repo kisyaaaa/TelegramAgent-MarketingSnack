@@ -22,4 +22,4 @@ function doitEnvoyer(planification, date = new Date()) {
     return (heureUtc + decalageSuisse(date)) % 24 === HEURE_CIBLE_SUISSE;
 }
 
-module.exports = { doitEnvoyer, decalageSuisse };
+module.exports = { doitEnvoyer };

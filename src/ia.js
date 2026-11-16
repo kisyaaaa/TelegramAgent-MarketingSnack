@@ -33,7 +33,8 @@ async function choisirModele() {
     return modeleChoisi;
 }
 
-async function appelerGroq(consigne, { temperature = 0.2 } = {}) {
+// Envoie une consigne à Groq et renvoie sa réponse JSON.
+async function appelerGroq(consigne) {
     const model = await choisirModele();
     for (let essai = 1; ; essai++) {
         const res = await fetch(`${GROQ_API}/chat/completions`, {
@@ -45,7 +46,7 @@ async function appelerGroq(consigne, { temperature = 0.2 } = {}) {
                     { role: "system", content: CONSIGNE_SYSTEME },
                     { role: "user", content: consigne },
                 ],
-                temperature,
+                temperature: 0.2,
                 response_format: { type: "json_object" },
             }),
             signal: AbortSignal.timeout(60000),

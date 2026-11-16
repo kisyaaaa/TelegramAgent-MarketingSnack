@@ -32,23 +32,24 @@ function selectionSansIA(articles) {
         .map((a) => ({ articles: [a], theme: null, majeur: false }));
 }
 
+// Ajoute à un sujet son titre, son résumé, son lien et son temps de lecture.
+// Renvoie null si le sujet doit être écarté.
 async function rediger(sujet) {
-    sujet.lien = sujet.articles[0].lien;
-    sujet.minutes = Math.max(...sujet.articles.map((a) => a.minutes || 0));
+    const principal = sujet.articles[0];
+    const infos = { lien: principal.lien, minutes: Math.max(...sujet.articles.map((a) => a.minutes)) };
 
     if (!AVEC_IA) {
-        const a = sujet.articles[0];
-        return { ...sujet, titre: a.titre, resume: (a.description || a.texte || "").slice(0, 280) };
+        return { ...sujet, ...infos, titre: principal.titre, resume: (principal.description || principal.texte).slice(0, 280) };
     }
     try {
-        const texte = await resumerSujet(sujet);
-        if (!texte) {
-            console.warn(`   ⏭️ Écarté (informations insuffisantes) : ${sujet.articles[0].titre}`);
+        const redaction = await resumerSujet(sujet);
+        if (!redaction) {
+            console.warn(`   ⏭️ Écarté (informations insuffisantes) : ${principal.titre}`);
             return null;
         }
-        return { ...sujet, ...texte };
+        return { ...sujet, ...infos, ...redaction };
     } catch (err) {
-        console.warn(`   ⚠️ Résumé impossible, sujet écarté (${err.message}) : ${sujet.articles[0].titre}`);
+        console.warn(`   ⚠️ Résumé impossible, sujet écarté (${err.message}) : ${principal.titre}`);
         return null;
     }
 }
