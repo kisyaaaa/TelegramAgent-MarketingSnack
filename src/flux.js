@@ -35,6 +35,16 @@ function nettoyer(texte) {
     return t.replace(/\s+/g, " ").trim();
 }
 
+// Retire les phrases ajoutées automatiquement par WordPress à la fin des extraits.
+function retirerMentionsAuto(texte) {
+    return texte
+        .replace(/\s*The post .* appeared first on .*$/i, "")
+        .replace(/Voir cette publication sur Instagram|Une publication partagée par [^:]*:?/gi, " ")
+        .replace(/\s*(…|\.\.\.)?\s*(Continuer la lecture|Lire la suite|Read more|Weiterlesen)\s*(→|»)?.*$/i, "…")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 function lireBalise(xml, ...noms) {
     for (const nom of noms) {
         const m = xml.match(new RegExp(`<${nom}(?:\\s[^>]*)?>([\\s\\S]*?)</${nom}>`, "i"));
@@ -56,8 +66,9 @@ function analyserFlux(xml) {
         const date = new Date(nettoyer(lireBalise(bloc, "pubDate", "dc:date", "published", "updated")));
         return {
             titre: nettoyer(lireBalise(bloc, "title")),
-            description: nettoyer(lireBalise(bloc, "description", "summary", "content:encoded")).slice(0, 400),
+            description: retirerMentionsAuto(nettoyer(lireBalise(bloc, "description", "summary", "content:encoded"))).slice(0, 400),
             lien: lireLien(bloc),
+            siteOrigine: (bloc.match(/<source[^>]*url="([^"]+)"/i) || [])[1] || "", // Google News
             date: isNaN(date) ? null : date,
         };
     });
@@ -76,6 +87,20 @@ function estLundiEnSuisse() {
     return new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Zurich", weekday: "short" }).format(new Date()) === "Mon";
 }
 
+function hote(url) {
+    try {
+        return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+        return "";
+    }
+}
+
+// Vrai si l'URL appartient bien au site du média (ex. "fr.themedialeader.com" pour "themedialeader.com").
+function estSurLeSite(url, domaine) {
+    const h = hote(url);
+    return h === domaine || h.endsWith(`.${domaine}`);
+}
+
 function garderRecents(articles, source) {
     const heures = estLundiEnSuisse() ? FENETRE_HEURES_LUNDI : FENETRE_HEURES;
     const limite = Date.now() - heures * 3600 * 1000;
@@ -87,19 +112,49 @@ function garderRecents(articles, source) {
 }
 
 async function lireViaRss(source) {
-    return garderRecents(analyserFlux(await telecharger(source.rss)), source);
+    // On ne garde que les liens qui pointent vers le site du média lui-même.
+    const articles = analyserFlux(await telecharger(source.rss)).filter((a) => estSurLeSite(a.lien, source.domaine));
+    return garderRecents(articles, source);
 }
 
 async function lireViaGoogleNews(source) {
     const params = GOOGLE_NEWS_LANGUES[source.langue] || GOOGLE_NEWS_LANGUES.fr;
     const periode = estLundiEnSuisse() ? "3d" : "1d";
     const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${source.domaine} when:${periode}`)}&${params}`;
-    const articles = analyserFlux(await telecharger(url)).map((a) => ({
-        ...a,
-        titre: a.titre.replace(/\s+-\s+[^-]+$/, ""), // retire le " - Nom du média" ajouté par Google
-        description: "", // Google News ne fournit que le titre
-    }));
+    const articles = analyserFlux(await telecharger(url))
+        // Google indique le site d'origine de chaque résultat : on vérifie que c'est bien le média.
+        .filter((a) => estSurLeSite(a.siteOrigine, source.domaine) && hote(a.lien) === "news.google.com")
+        .map((a) => ({
+            ...a,
+            titre: a.titre.replace(/(^|\s+)-\s+[^-]+$/, "").trim(), // retire le " - Nom du média" ajouté par Google
+            description: "", // Google News ne fournit que le titre
+        }))
+        // Écarte les pages qui ne sont pas des articles (pages auteur, agenda...) : titre trop court.
+        .filter((a) => a.titre.split(/\s+/).length >= 4 && !/\|\s*Agenda/i.test(a.titre));
     return garderRecents(articles, source);
+}
+
+// Complète un article dont l'extrait est trop court (ex. "Vidéo") avec la description
+// publiée sur la page de l'article (balises meta "og:description" / "description").
+async function enrichirArticle(article) {
+    if (article.description.length >= 120 || hote(article.lien) === "news.google.com") return article;
+    try {
+        const res = await fetch(article.lien, {
+            headers: { "User-Agent": USER_AGENT, Accept: "text/html" },
+            signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+        if (!res.ok) return article;
+        const html = (await res.text()).slice(0, 300000);
+        const meta = (nom) =>
+            (html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${nom}["'][^>]+content=["']([^"']+)["']`, "i")) ||
+                html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${nom}["']`, "i")) ||
+                [])[1];
+        const texte = nettoyer(meta("og:description") || meta("description") || meta("twitter:description") || "");
+        if (texte.length > article.description.length) return { ...article, description: texte.slice(0, 600) };
+    } catch {
+        // page inaccessible : on garde l'extrait du flux
+    }
+    return article;
 }
 
 // Lit une source : flux RSS officiel d'abord, Google News (filtré sur le site) en secours.
@@ -145,4 +200,4 @@ async function recupererArticles(sources) {
     return articles.sort((a, b) => b.date - a.date).map((a, id) => ({ id, ...a }));
 }
 
-module.exports = { recupererArticles, analyserFlux, nettoyer };
+module.exports = { recupererArticles, enrichirArticle, analyserFlux, nettoyer, estSurLeSite };
