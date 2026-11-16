@@ -41,19 +41,19 @@ L'emoji indique le thème : 🤖 IA & marketing · 📊 Data · 🔎 SEO · 📣
 | Francophones | Anglophones |
 |---|---|
 | L'ADN | Digiday |
-| E-marketing | Marketing Week |
-| La Réclame | Search Engine Land |
-| The Media Leader | Search Engine Journal |
-| Journal du Net | HubSpot Marketing Blog |
-| Blog du Modérateur | Moz Blog |
+| E-marketing | Search Engine Journal |
+| La Réclame | HubSpot Marketing Blog |
+| The Media Leader | Moz Blog |
+| Journal du Net | |
+| Blog du Modérateur | |
 | Webmarketing & co'm | |
 | Abondance | |
 
-Chaque média est lu directement sur son site, par son **flux RSS** ou, à défaut, par son **plan de site** (sitemap).
+Chaque média est lu directement sur son site, par son **flux RSS officiel**.
 
-Ces médias ont été choisis parce qu'ils publient régulièrement des articles **gratuits et complets**. HubSpot et Moz proposent surtout des guides et des analyses de fond plutôt que de l'actualité chaude. Certains sites (Marketing Week, Search Engine Land) bloquent parfois la lecture automatique : ils sont alors ignorés ce jour-là.
+Ces médias ont été choisis parce qu'ils publient régulièrement des articles **gratuits et complets**. HubSpot et Moz proposent surtout des guides et des analyses de fond plutôt que de l'actualité chaude. Un média dont le site est inaccessible un jour donné est simplement ignoré ce jour-là.
 
-**Médias écartés :** Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, The Drum, WARC et Contagious. Leurs articles sont presque toujours payants ou trop courts, ou leur site bloque la lecture automatique.
+**Médias écartés :** Stratégies, CB News, INfluencia, Adweek, Ad Age, Campaign, PRWeek, Marketing Week, Search Engine Land, The Drum, WARC et Contagious. Leurs articles sont presque toujours payants ou trop courts, ou leur site bloque la lecture automatique.
 
 ## ⚙️ Fonctionnement
 
@@ -61,7 +61,7 @@ Ces médias ont été choisis parce qu'ils publient régulièrement des articles
 GitHub Actions (chaque matin)
         │
         ▼
-1. Lecture des flux RSS et sitemaps des médias   ── src/flux.js
+1. Lecture des flux RSS des médias               ── src/flux.js
         │
         ▼
 2. Vérification de chaque article :              ── src/verification.js
@@ -84,11 +84,12 @@ GitHub Actions (chaque matin)
 ├── index.js                  # Point d'entrée : orchestre les étapes
 ├── src/
 │   ├── sources.js            # Médias suivis, thèmes et nombre d'actualités
-│   ├── flux.js               # Lecture des flux RSS / sitemaps, filtre sur les dernières 24 h
+│   ├── flux.js               # Lecture des flux RSS, filtre sur les dernières 24 h
 │   ├── verification.js       # Écarte les articles payants ou trop courts
 │   ├── ia.js                 # Sélection des sujets et résumés (API Groq)
 │   ├── telegram.js           # Mise en forme HTML et envoi Telegram
-│   └── horaire.js            # Gestion de l'heure suisse (été / hiver)
+│   ├── horaire.js            # Gestion de l'heure suisse (été / hiver)
+│   └── web.js                # Outils communs : téléchargement, nettoyage du HTML
 ├── .github/workflows/
 │   └── matin.yml             # Planification quotidienne
 ├── .env.example              # Modèle des variables d'environnement
@@ -143,7 +144,7 @@ Sans clé Groq, le mode test fonctionne quand même : il fait une sélection sim
 
 Tout se règle dans [`src/sources.js`](src/sources.js) :
 
-- **Ajouter ou retirer un média** : ajoute une ligne `{ nom, rss, domaine }`, ou `{ nom, sitemap, domaine }` si le média n'a pas de flux RSS.
+- **Ajouter ou retirer un média** : ajoute ou supprime une ligne `{ nom, rss, domaine }`.
 - **Changer les thèmes** : modifie la liste `THEMES`, et adapte la consigne dans [`src/ia.js`](src/ia.js).
 - **Changer le nombre d'actualités** : `NB_ACTUS_MIN` et `NB_ACTUS_MAX`.
 
